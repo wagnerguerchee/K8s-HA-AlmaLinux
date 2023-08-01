@@ -1,0 +1,18 @@
+- hosts: worker
+  gather_facts: yes
+  remote_user: kube
+  tasks:
+   - name: Copy join command for worker nodes.
+     become: yes
+     copy:
+       dest: /opt/kubejoin.sh
+       src: ./join/kubejoin.sh
+       mode: '0700'
+
+   - name: Run command on remote
+     become: yes
+     shell: /opt/kubejoin.sh
+
+   - name: REmove Files
+     shell: sudo rm -rf *.sh /opt  
+  

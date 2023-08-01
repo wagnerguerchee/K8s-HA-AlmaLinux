@@ -1,0 +1,52 @@
+- hosts: master1
+  remote_user: kube
+  become: yes
+  tasks:
+    - name: Destroy cluster before starting again 
+      command: kubeadm reset -f  
+    
+    - name: initialize the cluster
+      command: kubeadm init --control-plane-endpoint="192.168.56.30:6443" --upload-certs --apiserver-advertise-address={{ansible_enp0s8.ipv4.address}} --pod-network-cidr=10.10.0.0/16
+      register: kubeadm_init_output
+
+    - name: Create file with output
+      copy: 
+        content: "{{ kubeadm_init_output.stdout }}"
+        dest: /root/kubeadminit
+
+    - name: Prepare kebejoin script     
+      shell: tail -12 /root/kubeadminit > /root/kubejoin.sh
+
+    - name: Get kubejoin
+      fetch:
+        dest: ./join
+        src: /root/kubejoin.sh
+
+    - name: Organize files
+      shell: |  
+        cp join/{{ inventory_hostname }}/root/kubejoin.sh join/
+        rm -fr join/{{ inventory_hostname }}
+      delegate_to: localhost
+      become: no          
+
+    - name: create .kube directory
+      become: yes
+      become_user: kube
+      file:
+        path: $HOME/.kube
+        state: directory
+        mode: 0755
+
+    - name: copies admin.conf to user's kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/kube/.kube/config
+        remote_src: yes
+        owner: kube
+        
+    - name: install Pod network
+      become: yes
+      become_user: kube
+      shell: kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+      args:
+        chdir: $HOME

@@ -1,0 +1,22 @@
+- hosts: master2
+  gather_facts: yes
+  remote_user: kube
+  become: yes
+  tasks:
+   - name: Copy join command for master nodes.
+     copy:
+       dest: /opt/kubejoin.sh
+       src: ./join/kubejoin.sh
+       mode: '0700'
+       
+   - name: Create Script
+     shell: |
+             sudo head -3 /opt/kubejoin.sh > /opt/masterjoin.sh 
+             sudo chmod 0700 /opt/masterjoin.sh  
+
+   - name: Run command on remote
+     shell: /opt/masterjoin.sh   
+
+   - name: REmove Files
+     shell: |
+             sudo rm -rf *.sh /opt          

@@ -1,0 +1,36 @@
+---
+- name: Playbook de instalações de pacotes comuns em S.O  Alma Linux 8 
+  hosts: all
+  become: yes
+  remote_user: vagrant
+  tasks:
+    - name: timezone to America/Sao_Paulo
+      timezone:
+        name: America/Sao_Paulo
+                
+    - name: Install basic packages
+      dnf:
+        name: [epel-release, telnet, wget, lsof, rsync, git, glibc-all-langpacks]
+        state: installed
+    
+    #Configuração regional e de idioma             	  
+    - name: Substituir o locale.conf
+      copy:
+        src: files/locale.conf
+        dest: /etc/locale.conf
+                
+    - name: Disable service iptables.d
+      service:
+        name: firewalld
+        state: stopped
+        enabled: no
+
+    - name: Cofiguration motd
+      copy:
+        src: files/motd.j2
+        dest: /etc/motd
+
+    #necessario instalar  sudo dnf install ansible-collection-ansible-posix    
+    - name: Set SELinux to Permissive mode
+      ansible.posix.selinux:
+        state: disabled
